@@ -1,0 +1,1573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MindGuard — Mental Health Early Warning System</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Lora:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+/* ═══════════════════════════════════
+   CLAY DESIGN SYSTEM
+═══════════════════════════════════ */
+:root {
+  --cream:#f4ede4;--cream2:#ede4da;--white:#fdf9f5;
+  --rose:#e8907c;--rose-lt:#f5c4b8;
+  --sage:#7aac94;--sage-lt:#b8d9cb;
+  --sky:#7aaeca;--sky-lt:#b8d8ea;
+  --lavender:#a890c8;--lav-lt:#d4c4e8;
+  --peach:#f0b87a;--peach-lt:#f8dcb4;
+  --ink:#3a2e28;--ink2:#6b5a52;--ink3:#9e8a7e;
+  --shadow-up:-4px -4px 12px rgba(255,252,248,.85),6px 6px 18px rgba(160,130,110,.18);
+  --shadow-card:-6px -6px 16px rgba(255,252,248,.9),8px 8px 24px rgba(160,130,110,.22);
+  --shadow-deep:-8px -8px 20px rgba(255,252,248,.95),12px 12px 32px rgba(160,130,110,.28);
+  --shadow-in:inset 3px 3px 8px rgba(160,130,110,.18),inset -3px -3px 8px rgba(255,252,248,.9);
+  --r-sm:16px;--r-md:24px;--r-lg:32px;--r-xl:48px;
+  --head:'Nunito',sans-serif;--serif:'Lora',serif;--mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--cream);color:var(--ink);font-family:var(--head);overflow-x:hidden;cursor:none}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--cream)}
+::-webkit-scrollbar-thumb{background:var(--rose-lt);border-radius:99px}
+
+/* cursor */
+#cursor{position:fixed;top:0;left:0;width:16px;height:16px;background:var(--rose);border-radius:50%;pointer-events:none;z-index:9999;transition:transform 1ms,background 1ms}
+
+#bg-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:.55}
+.blob{position:absolute;border-radius:50%;filter:blur(60px);opacity:.35;pointer-events:none;z-index:0}
+
+/* nav */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;justify-content:space-between;align-items:center;padding:16px 48px;background:rgba(244,237,228,.88);backdrop-filter:blur(20px);border-bottom:1.5px solid rgba(232,144,124,.15);box-shadow:0 4px 24px rgba(160,130,110,.1)}
+.nav-logo{display:flex;align-items:center;gap:10px;font-size:1.1rem;font-weight:900;letter-spacing:-.01em;color:var(--ink)}
+.nav-logo-icon{width:36px;height:36px;border-radius:12px;background:var(--rose);display:flex;align-items:center;justify-content:center;font-size:1rem;box-shadow:var(--shadow-up)}
+.nav-links{display:flex;gap:28px}
+.nav-links a{font-size:.85rem;font-weight:600;color:var(--ink2);text-decoration:none;transition:color .25s}
+.nav-links a:hover{color:var(--rose)}
+.nav-right{display:flex;align-items:center;gap:12px}
+.nav-badge{font-family:var(--mono);font-size:.68rem;padding:7px 16px;background:var(--white);color:var(--sage);border-radius:99px;font-weight:500;box-shadow:var(--shadow-up);border:1.5px solid rgba(122,172,148,.25)}
+.api-status-btn{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:.65rem;font-weight:500;padding:7px 14px;background:var(--white);border:1.5px solid rgba(122,172,148,.3);border-radius:99px;cursor:none;box-shadow:var(--shadow-up);transition:all .2s;color:var(--ink2)}
+.api-status-btn:hover{border-color:var(--rose)}
+.api-dot{width:8px;height:8px;border-radius:50%;background:#ccc;transition:background .4s}
+.api-dot.connected{background:var(--sage);box-shadow:0 0 6px var(--sage);animation:blink 2s infinite}
+.api-dot.error{background:var(--rose)}
+
+section{position:relative;z-index:1}
+
+/* hero */
+#hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:100px 24px 60px;overflow:hidden}
+.hero-blob-1{width:600px;height:600px;background:radial-gradient(circle,var(--rose-lt),transparent 70%);top:-100px;left:-150px}
+.hero-blob-2{width:500px;height:500px;background:radial-gradient(circle,var(--sky-lt),transparent 70%);bottom:-80px;right:-120px}
+.hero-blob-3{width:400px;height:400px;background:radial-gradient(circle,var(--sage-lt),transparent 70%);top:40%;left:60%}
+.hero-chip{display:inline-flex;align-items:center;gap:8px;background:var(--white);border-radius:99px;padding:8px 20px;margin-bottom:32px;font-size:.78rem;font-weight:700;color:var(--rose);box-shadow:var(--shadow-up);border:1.5px solid rgba(232,144,124,.2);opacity:0}
+.hero-chip span{width:8px;height:8px;background:var(--rose);border-radius:50%;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.hero-title{font-size:clamp(3.5rem,9vw,8rem);font-weight:900;line-height:.95;letter-spacing:-.03em;margin-bottom:28px;color:var(--ink);opacity:0}
+.hero-title .accent-word{color:var(--rose);display:inline-block;position:relative}
+.hero-title .accent-word::after{content:'';position:absolute;bottom:-4px;left:0;right:0;height:6px;background:var(--peach-lt);border-radius:99px;z-index:-1}
+.hero-sub{font-family:var(--serif);font-size:clamp(1.05rem,2vw,1.35rem);color:var(--ink2);max-width:560px;line-height:1.75;opacity:0;margin-bottom:44px}
+.hero-cta{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;opacity:0}
+.btn{font-family:var(--head);font-size:.9rem;font-weight:700;padding:14px 30px;border-radius:99px;cursor:none;transition:all .25s;text-decoration:none;display:inline-flex;align-items:center;gap:8px;border:none}
+.btn-primary{background:var(--rose);color:#fff;box-shadow:-3px -3px 8px rgba(255,252,248,.7),5px 5px 16px rgba(200,100,80,.3)}
+.btn-primary:hover{transform:translateY(-3px);box-shadow:-3px -3px 8px rgba(255,252,248,.7),8px 8px 24px rgba(200,100,80,.35)}
+.btn-secondary{background:var(--white);color:var(--ink);box-shadow:var(--shadow-up)}
+.btn-secondary:hover{transform:translateY(-3px);color:var(--rose)}
+.btn-sage{background:var(--sage);color:#fff;box-shadow:-3px -3px 8px rgba(255,252,248,.7),5px 5px 16px rgba(90,150,120,.3)}
+.btn-sage:hover{transform:translateY(-3px)}
+.scroll-hint{position:absolute;bottom:36px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:10px;font-size:.7rem;font-weight:600;color:var(--ink3);letter-spacing:.1em;text-transform:uppercase;opacity:0}
+.scroll-line{width:2px;height:44px;background:linear-gradient(to bottom,var(--rose),transparent);border-radius:99px;animation:scrollDown 1.8s ease-in-out infinite}
+@keyframes scrollDown{0%{transform:scaleY(0);transform-origin:top;opacity:0}50%{opacity:1}100%{transform:scaleY(1);transform-origin:top;opacity:0}}
+
+/* stats */
+#stats-bar{padding:0 48px 64px;display:grid;grid-template-columns:repeat(4,1fr);gap:20px;max-width:1200px;margin:0 auto}
+.stat-card{background:var(--white);border-radius:var(--r-lg);padding:32px 28px;text-align:center;box-shadow:var(--shadow-card);border:1.5px solid rgba(255,255,255,.9);position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;border-radius:99px 99px 0 0}
+.sc-1::before{background:var(--rose)}.sc-2::before{background:var(--sky)}.sc-3::before{background:var(--sage)}.sc-4::before{background:var(--peach)}
+.stat-num{font-size:clamp(2rem,4vw,2.8rem);font-weight:900;line-height:1;color:var(--ink)}
+.stat-label{font-family:var(--mono);font-size:.67rem;color:var(--ink3);margin-top:8px;letter-spacing:.04em}
+
+/* section common */
+.section-tag{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:.7rem;font-weight:500;color:var(--rose);margin-bottom:18px;letter-spacing:.06em}
+.section-tag::before{content:'';width:24px;height:3px;background:var(--rose);border-radius:99px}
+.section-h{font-size:clamp(2rem,4vw,3.2rem);font-weight:900;line-height:1.05;letter-spacing:-.025em;margin-bottom:20px;color:var(--ink)}
+.section-body{font-family:var(--serif);font-size:1.1rem;line-height:1.85;color:var(--ink2)}
+
+/* problem */
+#problem{padding:80px 48px 100px;display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center;max-width:1200px;margin:0 auto}
+.problem-cards{display:flex;flex-direction:column;gap:16px}
+.p-card{background:var(--white);border-radius:var(--r-md);padding:22px 24px;box-shadow:var(--shadow-card);border:1.5px solid rgba(255,255,255,.9);display:flex;gap:16px;align-items:flex-start;transform:translateX(50px);opacity:0;transition:transform .3s}
+.p-card:hover{transform:translateX(0) translateY(-4px) !important}
+.p-card-icon{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;box-shadow:var(--shadow-up)}
+.p-card h4{font-size:.9rem;font-weight:700;margin-bottom:5px}
+.p-card p{font-family:var(--mono);font-size:.68rem;color:var(--ink3);line-height:1.7}
+
+/* pipeline */
+#pipeline{padding:80px 48px 100px}
+.pipeline-inner{max-width:1200px;margin:0 auto}
+.pipeline-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:56px}
+.code-block{background:var(--ink);border-radius:var(--r-lg);overflow:hidden;opacity:0;transform:translateY(28px);box-shadow:-6px -6px 16px rgba(255,252,248,.5),12px 12px 32px rgba(60,40,30,.35)}
+.code-header{display:flex;align-items:center;justify-content:space-between;padding:14px 22px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.06)}
+.code-dots{display:flex;gap:6px}
+.dot{width:10px;height:10px;border-radius:50%}
+.dot-r{background:#ff6b6b}.dot-y{background:#ffd93d}.dot-g{background:#6bcb77}
+.code-title{font-family:var(--mono);font-size:.68rem;color:rgba(255,255,255,.35)}
+.code-body{padding:22px;font-family:var(--mono);font-size:.73rem;line-height:1.85;overflow-x:auto;max-height:360px;overflow-y:auto;color:#e0d8d0}
+.code-body::-webkit-scrollbar{width:3px}
+.code-body::-webkit-scrollbar-thumb{background:rgba(232,144,124,.4);border-radius:99px}
+.kw{color:#f4a1a1}.fn{color:#a8d5a2}.str{color:#f4e0a1}.cm{color:#6b6b6b}.num{color:#c4b0e8}.cls{color:#a1d0f4}.var{color:#f4c4a1}
+.step-list{display:flex;flex-direction:column;gap:22px}
+.step-item{display:flex;gap:18px;align-items:flex-start;background:var(--white);border-radius:var(--r-md);padding:22px 24px;box-shadow:var(--shadow-card);border:1.5px solid rgba(255,255,255,.9);opacity:0;transform:translateX(-28px);transition:transform .3s}
+.step-item:hover{transform:translateX(0) translateY(-3px) !important}
+.step-num{font-size:1.6rem;font-weight:900;line-height:1;flex-shrink:0;width:40px}
+.step-content h4{font-size:.9rem;font-weight:800;margin-bottom:5px}
+.step-content p{font-family:var(--mono);font-size:.68rem;color:var(--ink3);line-height:1.7}
+.tag-pill{display:inline-block;font-family:var(--mono);font-size:.58rem;font-weight:500;padding:3px 10px;border-radius:99px;margin:5px 3px 0 0;letter-spacing:.04em}
+.pill-py{background:rgba(232,144,124,.15);color:var(--rose)}
+.pill-ml{background:rgba(122,172,148,.15);color:var(--sage)}
+.pill-db{background:rgba(122,174,202,.15);color:var(--sky)}
+
+/* model cards */
+#model{padding:80px 48px 100px;background:var(--cream2)}
+.model-inner{max-width:1200px;margin:0 auto}
+.model-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:56px}
+.model-card{background:var(--white);border-radius:var(--r-xl);padding:36px 30px;box-shadow:var(--shadow-deep);border:2px solid rgba(255,255,255,.9);opacity:0;transform:translateY(36px);transition:transform .3s;position:relative;overflow:hidden}
+.model-card:hover{transform:translateY(-8px) !important}
+.model-card-blob{position:absolute;width:200px;height:200px;border-radius:50%;filter:blur(50px);opacity:.25;top:-60px;right:-60px;pointer-events:none}
+.mc1-blob{background:var(--rose)}.mc2-blob{background:var(--sky)}.mc3-blob{background:var(--sage)}
+.model-icon-wrap{width:60px;height:60px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin-bottom:20px;box-shadow:var(--shadow-up)}
+.mi-rose{background:rgba(232,144,124,.15)}.mi-sky{background:rgba(122,174,202,.15)}.mi-sage{background:rgba(122,172,148,.15)}
+.model-name{font-size:1rem;font-weight:800;margin-bottom:10px}
+.model-desc{font-family:var(--mono);font-size:.69rem;color:var(--ink3);line-height:1.8}
+.model-acc{margin-top:22px;padding-top:20px;border-top:2px dashed rgba(60,40,30,.08);display:flex;justify-content:space-between;align-items:center}
+.acc-pill{padding:6px 18px;border-radius:99px;font-size:1.1rem;font-weight:900;color:#fff;box-shadow:0 4px 16px rgba(0,0,0,.12)}
+.ap-rose{background:var(--rose)}.ap-sky{background:var(--sky)}.ap-sage{background:var(--sage)}
+.acc-label{font-family:var(--mono);font-size:.62rem;color:var(--ink3);text-align:right;line-height:1.5}
+
+/* ══ ANALYZE SECTION ══ */
+#analyze{padding:80px 48px 100px}
+.analyze-inner{max-width:1200px;margin:0 auto}
+.analyze-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:56px}
+.analyze-form-card{background:var(--white);border-radius:var(--r-xl);padding:36px;box-shadow:var(--shadow-deep);border:2px solid rgba(255,255,255,.9)}
+.form-label{font-family:var(--mono);font-size:.68rem;font-weight:600;color:var(--ink2);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;display:block}
+.form-select,.form-textarea{width:100%;font-family:var(--head);font-size:.88rem;font-weight:600;color:var(--ink);background:var(--cream);border:2px solid rgba(160,130,110,.2);border-radius:var(--r-md);padding:12px 16px;outline:none;transition:all .25s;cursor:none;resize:none}
+.form-select:focus,.form-textarea:focus{border-color:var(--rose);box-shadow:0 0 0 3px rgba(232,144,124,.12)}
+.form-textarea{height:180px;line-height:1.7}
+.form-row{margin-bottom:20px}
+.lang-badge{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:.65rem;padding:5px 12px;background:var(--cream);border-radius:99px;box-shadow:var(--shadow-in);margin-top:8px;color:var(--ink2)}
+.lang-flag{font-size:.9rem}
+.char-count{font-family:var(--mono);font-size:.6rem;color:var(--ink3);text-align:right;margin-top:4px}
+.submit-row{display:flex;align-items:center;gap:12px;margin-top:8px}
+.loading-dots{display:none;gap:4px}
+.loading-dots span{width:6px;height:6px;background:var(--rose);border-radius:50%;animation:dotBounce 1.2s infinite}
+.loading-dots span:nth-child(2){animation-delay:.2s}
+.loading-dots span:nth-child(3){animation-delay:.4s}
+@keyframes dotBounce{0%,80%,100%{transform:scale(0)}40%{transform:scale(1)}}
+
+/* result panel */
+.result-card{background:var(--white);border-radius:var(--r-xl);padding:36px;box-shadow:var(--shadow-deep);border:2px solid rgba(255,255,255,.9);opacity:0;transform:translateY(20px);transition:all .5s ease}
+.result-card.visible{opacity:1;transform:translateY(0)}
+.result-empty{text-align:center;padding:60px 20px;display:flex;flex-direction:column;align-items:center;gap:16px}
+.result-empty-icon{font-size:3rem;filter:grayscale(.4)}
+.result-empty p{font-family:var(--mono);font-size:.72rem;color:var(--ink3);line-height:1.7}
+.result-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;flex-wrap:wrap;gap:12px}
+.result-patient{font-size:.8rem;font-weight:700;color:var(--ink2)}
+.result-session{font-family:var(--mono);font-size:.62rem;color:var(--ink3);margin-top:2px}
+.risk-level-badge{padding:7px 18px;border-radius:99px;font-size:.8rem;font-weight:800;letter-spacing:.04em}
+.rlb-HIGH{background:rgba(232,144,124,.2);color:var(--rose);border:2px solid rgba(232,144,124,.3)}
+.rlb-MED{background:rgba(240,184,122,.2);color:var(--peach);border:2px solid rgba(240,184,122,.3)}
+.rlb-LOW{background:rgba(122,172,148,.2);color:var(--sage);border:2px solid rgba(122,172,148,.3)}
+
+/* score gauges */
+.score-gauges{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
+.gauge-card{background:var(--cream);border-radius:20px;padding:20px 16px;text-align:center;box-shadow:var(--shadow-in);border:2px solid rgba(255,255,255,.5)}
+.gauge-ring{width:80px;height:80px;margin:0 auto 12px;position:relative}
+.gauge-ring svg{transform:rotate(-90deg)}
+.gauge-ring circle{fill:none;stroke-width:7;stroke-linecap:round;transition:stroke-dashoffset 1.2s ease}
+.gauge-bg{stroke:rgba(160,130,110,.12)}
+.gauge-fg{stroke:var(--rose)}
+.gauge-ring.gauge-anx .gauge-fg{stroke:var(--peach)}
+.gauge-ring.gauge-cri .gauge-fg{stroke:var(--sky)}
+.gauge-val{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:1rem;font-weight:900;color:var(--ink)}
+.gauge-label{font-family:var(--mono);font-size:.6rem;color:var(--ink3);letter-spacing:.06em;text-transform:uppercase}
+.gauge-delta{font-family:var(--mono);font-size:.58rem;margin-top:4px;font-weight:600}
+.gauge-delta.up{color:var(--rose)}.gauge-delta.down{color:var(--sage)}
+
+.action-block{background:rgba(122,172,148,.08);border:1.5px solid rgba(122,172,148,.25);border-radius:18px;padding:16px 20px;cursor:none;transition:all .25s}
+.action-block:hover{background:rgba(122,172,148,.15);transform:translateY(-3px);box-shadow:0 6px 16px rgba(122,172,148,.2)}
+.action-title{font-family:var(--mono);font-size:.62rem;font-weight:600;color:var(--sage);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+.action-text{font-size:.8rem;font-weight:700;color:var(--ink2);line-height:1.6}
+.action-hint{font-family:var(--mono);font-size:.65rem;font-weight:600;color:var(--sage);margin-top:8px;display:flex;align-items:center;gap:6px;opacity:0.8}
+.action-block:hover .action-hint span{transform:translateX(4px)}
+.action-hint span{transition:transform .2s}
+
+/* Hospital card for intervention page */
+.hosp-card {background:var(--white); border-radius:var(--r-lg); padding:28px; box-shadow:var(--shadow-card); border:1.5px solid rgba(255,255,255,.9); display:flex; flex-direction:column; gap:16px; transform:translateY(20px); opacity:0; animation: slideUp .4s forwards;}
+@keyframes slideUp { to { transform:translateY(0); opacity:1; } }
+.hosp-header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:1.5px dashed rgba(60,40,30,.08); padding-bottom:16px; }
+.hosp-name { font-size:1.2rem; font-weight:800; color:var(--ink); margin-bottom:4px; }
+.hosp-address { font-family:var(--mono); font-size:0.75rem; color:var(--ink3); }
+.hosp-dist { font-family:var(--mono); font-size:0.7rem; font-weight:700; background:var(--sage-lt); color:var(--ink); padding:4px 10px; border-radius:99px; }
+.contact-tag { display:inline-flex; align-items:center; gap:6px; font-family:var(--mono); font-size:0.75rem; color:var(--rose); background:rgba(232,144,124,.1); padding:6px 14px; border-radius:99px; font-weight:600; }
+.doc-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:16px; }
+.doc-card { background:var(--cream); border-radius:16px; padding:16px; border:1px solid rgba(160,130,110,.12); }
+.doc-name { font-weight:700; font-size:0.9rem; color:var(--ink); margin-bottom:4px; }
+.doc-spec { font-family:var(--mono); font-size:0.65rem; color:var(--ink2); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px; }
+.doc-meta { display:flex; justify-content:space-between; align-items:center; font-family:var(--mono); font-size:0.65rem; }
+.doc-exp { color:var(--ink3); }
+.doc-avail { color:var(--sage); font-weight:600; }
+
+/* gemini insight */
+.gemini-block {
+  background: linear-gradient(135deg, rgba(168,144,200,.15), rgba(122,174,202,.1));
+  border: 2px solid rgba(168,144,200,.4);
+  border-radius: 22px;
+  padding: 22px 24px;
+  margin-bottom: 20px;
+  min-height: 80px;
+  transition: opacity 0.5s ease;
+}
+.gemini-title {
+  font-family: var(--mono);
+  font-size: .68rem;
+  font-weight: 700;
+  color: var(--lavender);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.gemini-text { 
+  font-size: .88rem; 
+  line-height: 1.8; 
+  color: var(--ink); 
+  font-weight: 600;
+  font-style: normal;
+}
+
+/* add patient modal trigger */
+.add-patient-row{display:flex;align-items:center;gap:10px;margin-top:12px}
+.add-patient-btn{font-family:var(--mono);font-size:.65rem;font-weight:600;padding:7px 16px;background:transparent;border:1.5px dashed rgba(122,172,148,.4);border-radius:99px;cursor:none;color:var(--sage);transition:all .2s}
+.add-patient-btn:hover{background:rgba(122,172,148,.1);border-style:solid}
+
+/* ══ LIVE DASHBOARD ══ */
+#dashboard{padding:80px 48px 100px;background:var(--cream2)}
+.dash-inner{max-width:1260px;margin:0 auto}
+.dash-header{text-align:center;margin-bottom:56px}
+.dash-mockup{background:var(--white);border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--shadow-deep);border:2px solid rgba(255,255,255,.9);opacity:0;transform:translateY(50px) scale(.97)}
+.dash-topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;background:var(--cream);border-bottom:2px solid rgba(232,144,124,.12);flex-wrap:wrap;gap:10px}
+.dash-logo{font-weight:900;font-size:.95rem;color:var(--ink);display:flex;align-items:center;gap:8px}
+.dash-logo-dot{width:10px;height:10px;background:var(--rose);border-radius:50%;box-shadow:0 0 8px var(--rose)}
+.dash-tabs{display:flex;gap:4px}
+.dash-tab{font-size:.72rem;font-weight:700;padding:7px 16px;border-radius:99px;color:var(--ink3);cursor:none;transition:all .2s}
+.dash-tab.active{background:var(--rose);color:#fff;box-shadow:0 4px 12px rgba(232,144,124,.4)}
+.dash-live{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:.65rem;color:var(--sage);font-weight:500}
+.live-dot{width:8px;height:8px;background:var(--sage);border-radius:50%;box-shadow:0 0 6px var(--sage);animation:blink 2s infinite}
+.dash-body{display:grid;grid-template-columns:260px 1fr;min-height:480px}
+.dash-sidebar{background:var(--cream2);border-right:2px solid rgba(232,144,124,.1);padding:20px 16px;overflow-y:auto;max-height:480px}
+.sidebar-label{font-family:var(--mono);font-size:.6rem;font-weight:500;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px;padding:0 8px}
+.patient-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:16px;margin-bottom:6px;cursor:none;transition:all .2s}
+.patient-item.active,.patient-item:hover{background:rgba(255,255,255,.8);box-shadow:var(--shadow-up)}
+.pat-avatar{width:38px;height:38px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:800;flex-shrink:0;box-shadow:var(--shadow-up)}
+.pa-rose{background:rgba(232,144,124,.2);color:var(--rose)}
+.pa-peach{background:rgba(240,184,122,.2);color:var(--peach)}
+.pa-sage{background:rgba(122,172,148,.2);color:var(--sage)}
+.pa-sky{background:rgba(122,174,202,.2);color:var(--sky)}
+.pat-info h5{font-size:.78rem;font-weight:700;margin-bottom:2px}
+.pat-info span{font-family:var(--mono);font-size:.6rem;color:var(--ink3)}
+.risk-badge{margin-left:auto;font-family:var(--mono);font-size:.6rem;font-weight:600;padding:3px 8px;border-radius:99px;flex-shrink:0}
+.rb-hi{background:rgba(232,144,124,.2);color:var(--rose)}
+.rb-mid{background:rgba(240,184,122,.2);color:var(--peach)}
+.rb-lo{background:rgba(122,172,148,.2);color:var(--sage)}
+.dash-main{padding:24px;display:flex;flex-direction:column;gap:18px;overflow:hidden}
+.dash-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.metric-card{background:var(--cream);border-radius:20px;padding:20px 22px;box-shadow:var(--shadow-in);border:2px solid rgba(255,255,255,.5)}
+.metric-val{font-size:2rem;font-weight:900;line-height:1}
+.mv-rose{color:var(--rose)}.mv-peach{color:var(--peach)}.mv-sage{color:var(--sage)}.mv-sky{color:var(--sky)}
+.metric-label{font-family:var(--mono);font-size:.62rem;color:var(--ink3);margin-top:6px}
+.metric-delta{font-family:var(--mono);font-size:.63rem;margin-top:10px;font-weight:500}
+.dt-up{color:var(--rose)}.dt-dn{color:var(--sage)}
+.chart-area{background:var(--cream);border-radius:20px;padding:18px 22px;box-shadow:var(--shadow-in);border:2px solid rgba(255,255,255,.5)}
+.chart-title{font-family:var(--mono);font-size:.65rem;font-weight:500;color:var(--ink3);margin-bottom:14px;letter-spacing:.06em;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center}
+.chart-title span{font-size:.58rem}
+.mini-bars{display:flex;align-items:flex-end;gap:7px;height:80px}
+.bar{flex:1;border-radius:8px 8px 0 0;transition:all .4s;cursor:none;position:relative}
+.bar:hover{opacity:1 !important;transform:scaleY(1.05);transform-origin:bottom}
+.bar-tooltip{display:none;position:absolute;bottom:calc(100%+6px);left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;font-family:var(--mono);font-size:.55rem;padding:3px 8px;border-radius:6px;white-space:nowrap;z-index:10}
+.bar:hover .bar-tooltip{display:block}
+.alert-strip{background:rgba(232,144,124,.1);border:2px solid rgba(232,144,124,.25);border-radius:18px;padding:14px 18px;display:flex;align-items:flex-start;gap:14px}
+.alert-icon{font-size:1.2rem;flex-shrink:0;margin-top:1px}
+.alert-text{font-family:var(--mono);font-size:.67rem;line-height:1.7;color:var(--ink2)}
+.dash-summary-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:16px 24px;background:var(--cream2);border-top:2px solid rgba(232,144,124,.1)}
+.summary-stat{text-align:center}
+.summary-val{font-size:1.6rem;font-weight:900;color:var(--ink)}
+.summary-label{font-family:var(--mono);font-size:.6rem;color:var(--ink3);margin-top:2px}
+
+/* tech stack */
+#techstack{padding:80px 48px 100px}
+.stack-inner{max-width:1200px;margin:0 auto}
+.stack-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:40px;margin-top:56px}
+.stack-col-title{font-family:var(--mono);font-size:.72rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid rgba(60,40,30,.08);color:var(--ink)}
+.tech-item{display:flex;align-items:center;gap:16px;padding:14px 0;border-bottom:1.5px dashed rgba(60,40,30,.07);opacity:0;transform:translateX(-18px);transition:transform .3s}
+.tech-item:hover{transform:translateX(6px) !important}
+.tech-item:last-child{border-bottom:none}
+.tech-icon-wrap{width:40px;height:40px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;background:var(--white);box-shadow:var(--shadow-up)}
+.tech-info h5{font-size:.88rem;font-weight:700;margin-bottom:2px}
+.tech-info p{font-family:var(--mono);font-size:.65rem;color:var(--ink3)}
+
+/* timeline */
+#timeline{padding:80px 48px 100px;background:var(--cream2)}
+.timeline-inner{max-width:860px;margin:0 auto}
+.tl-title{text-align:center;margin-bottom:72px}
+.tl-track{position:relative;padding-left:52px}
+.tl-track::before{content:'';position:absolute;left:16px;top:8px;bottom:8px;width:3px;background:linear-gradient(to bottom,var(--rose-lt),var(--sky-lt));border-radius:99px}
+.tl-item{position:relative;margin-bottom:44px;opacity:0;transform:translateY(24px)}
+.tl-item:last-child{margin-bottom:0}
+.tl-dot-wrap{position:absolute;left:-52px;top:0;width:36px;height:36px;border-radius:14px;background:var(--white);display:flex;align-items:center;justify-content:center;font-size:1rem;box-shadow:var(--shadow-card);border:2px solid rgba(255,255,255,.9)}
+.tl-card{background:var(--white);border-radius:var(--r-md);padding:22px 26px;box-shadow:var(--shadow-card);border:1.5px solid rgba(255,255,255,.9);transition:transform .3s}
+.tl-card:hover{transform:translateX(6px)}
+.tl-phase{font-family:var(--mono);font-size:.65rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px}
+.tl-event{font-size:1.05rem;font-weight:800;margin-bottom:8px}
+.tl-detail{font-family:var(--mono);font-size:.7rem;color:var(--ink3);line-height:1.8}
+.tl-tags{margin-top:10px}
+
+/* impact */
+#impact{padding:80px 48px 100px;text-align:center}
+.impact-inner{max-width:1100px;margin:0 auto}
+.impact-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;margin-top:56px}
+.impact-card{background:var(--white);border-radius:var(--r-xl);padding:48px 32px;box-shadow:var(--shadow-deep);border:2px solid rgba(255,255,255,.9);opacity:0;transform:scale(.93);transition:transform .3s}
+.impact-card:hover{transform:scale(1) translateY(-6px) !important}
+.impact-emoji{font-size:2.8rem;margin-bottom:20px;display:block}
+.impact-num{font-size:2.8rem;font-weight:900;color:var(--ink)}
+.impact-label{font-size:.8rem;font-weight:700;color:var(--rose);margin:4px 0 10px}
+.impact-desc{font-family:var(--mono);font-size:.7rem;color:var(--ink3);line-height:1.75}
+
+/* CTA */
+#cta{padding:130px 48px;text-align:center;position:relative;overflow:hidden}
+.cta-blob{width:700px;height:700px;background:radial-gradient(circle,rgba(232,144,124,.2),transparent 65%);top:50%;left:50%;transform:translate(-50%,-50%);position:absolute;pointer-events:none}
+.cta-h{font-size:clamp(2.8rem,7vw,6rem);font-weight:900;line-height:.95;letter-spacing:-.03em;margin-bottom:28px;position:relative}
+.cta-h em{font-style:normal;color:var(--rose)}
+.cta-sub{font-family:var(--serif);font-size:1.18rem;color:var(--ink2);max-width:500px;margin:0 auto 44px;line-height:1.75}
+.cta-btns{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;position:relative}
+.team-tag{font-family:var(--mono);font-size:.68rem;color:var(--ink3);margin-top:44px;letter-spacing:.08em;text-transform:uppercase}
+
+footer{padding:28px 48px;display:flex;justify-content:space-between;align-items:center;border-top:2px solid rgba(232,144,124,.12);font-family:var(--mono);font-size:.65rem;color:var(--ink3)}
+.footer-logo{font-weight:900;font-size:.85rem;color:var(--rose)}
+
+/* ══ PORT MODAL ══ */
+.modal-overlay{position:fixed;inset:0;background:rgba(58,46,40,.5);backdrop-filter:blur(8px);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .3s;pointer-events:none}
+.modal-overlay.show{opacity:1;pointer-events:all}
+.modal-card{background:var(--white);border-radius:var(--r-xl);padding:48px;box-shadow:var(--shadow-deep);border:2px solid rgba(255,255,255,.9);max-width:480px;width:90%;transform:scale(.92) translateY(24px);transition:all .4s ease;text-align:center}
+.modal-overlay.show .modal-card{transform:scale(1) translateY(0)}
+.modal-icon{font-size:3rem;margin-bottom:16px;display:block}
+.modal-title{font-size:1.8rem;font-weight:900;color:var(--ink);margin-bottom:10px}
+.modal-sub{font-family:var(--mono);font-size:.72rem;color:var(--ink3);line-height:1.7;margin-bottom:32px}
+.modal-input-wrap{display:flex;gap:10px;align-items:center}
+.modal-input{flex:1;font-family:var(--mono);font-size:1rem;font-weight:700;color:var(--ink);background:var(--cream);border:2px solid rgba(160,130,110,.2);border-radius:var(--r-md);padding:14px 20px;outline:none;text-align:center;transition:border .25s;cursor:text}
+.modal-input:focus{border-color:var(--rose)}
+.modal-error{font-family:var(--mono);font-size:.65rem;color:var(--rose);margin-top:10px;min-height:18px}
+.modal-hint{font-family:var(--mono);font-size:.62rem;color:var(--ink3);margin-top:16px}
+
+/* ══ TOASTS ══ */
+.toast-container{position:fixed;top:84px;right:24px;z-index:500;display:flex;flex-direction:column;gap:12px;pointer-events:none}
+.toast{background:var(--white);border-radius:20px;padding:16px 20px;box-shadow:var(--shadow-deep);border:1.5px solid rgba(255,255,255,.9);max-width:340px;transform:translateX(380px);transition:transform .4s cubic-bezier(.34,1.56,.64,1);pointer-events:auto;display:flex;gap:12px;align-items:flex-start}
+.toast.show{transform:translateX(0)}
+.toast-icon{font-size:1.2rem;flex-shrink:0}
+.toast-body{flex:1}
+.toast-title{font-size:.8rem;font-weight:800;margin-bottom:3px;color:var(--ink)}
+.toast-msg{font-family:var(--mono);font-size:.62rem;color:var(--ink3);line-height:1.6}
+.toast-close{background:none;border:none;cursor:none;font-size:.9rem;color:var(--ink3);flex-shrink:0;padding:2px}
+.toast.alert-toast{border-left:4px solid var(--rose)}
+.toast.success-toast{border-left:4px solid var(--sage)}
+.toast.info-toast{border-left:4px solid var(--sky)}
+
+/* add patient modal */
+#addPatientModal{display:none}
+#addPatientModal.show{display:flex}
+.add-patient-form .form-row{margin-bottom:16px}
+.add-patient-form .form-input{width:100%;font-family:var(--head);font-size:.88rem;font-weight:600;color:var(--ink);background:var(--cream);border:2px solid rgba(160,130,110,.2);border-radius:var(--r-md);padding:12px 16px;outline:none;transition:border .25s;cursor:text}
+.add-patient-form .form-input:focus{border-color:var(--rose)}
+.modal-actions{display:flex;gap:12px;margin-top:24px;justify-content:center}
+
+/* loading skeleton */
+.skeleton{background:linear-gradient(90deg,var(--cream) 25%,var(--cream2) 50%,var(--cream) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:8px}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+
+@media(max-width:900px){
+  nav{padding:14px 20px}
+  .nav-links{display:none}
+  #stats-bar{grid-template-columns:1fr 1fr;padding:0 20px 48px}
+  #problem{grid-template-columns:1fr;gap:36px;padding:60px 20px}
+  .flow-wrapper{grid-template-columns:1fr;gap:20px}
+  .flow-arrow{display:none}
+  .pipeline-grid,.model-grid,.analyze-grid,.stack-grid,.impact-grid{grid-template-columns:1fr}
+  .dash-body{grid-template-columns:1fr}
+  .dash-sidebar{display:none}
+  .score-gauges{grid-template-columns:1fr 1fr}
+  #pipeline,#model,#analyze,#dashboard,#techstack,#timeline,#impact,#cta{padding:60px 20px}
+  .dash-summary-row{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<div id="cursor-trail"></div>
+<canvas id="bg-canvas"></canvas>
+
+<!-- Intervention Page Overlay -->
+<div id="interventionPage" style="display:none; position:fixed; inset:0; z-index:200; background:var(--cream); overflow-y:auto; cursor:none;">
+  <div style="padding:16px 48px; border-bottom:1.5px solid rgba(232,144,124,.15); display:flex; justify-content:space-between; align-items:center; background:rgba(244,237,228,.88); backdrop-filter:blur(20px); position:sticky; top:0; z-index:10;">
+    <div class="nav-logo"><div class="nav-logo-icon">📍</div>Intervention Services</div>
+    <button class="btn btn-secondary" onclick="closeInterventionPage()" style="padding:8px 20px; font-size:0.75rem;">← Back to Analysis</button>
+  </div>
+  
+  <!-- Added background scrolling effect / theme blobs -->
+  <div class="blob hero-blob-1" style="position:fixed; top:-100px; left:-150px; z-index:0; animation:blobScroll 8s infinite alternate ease-in-out;"></div>
+  <div class="blob hero-blob-2" style="position:fixed; bottom:-80px; right:-120px; z-index:0; animation:blobScroll 12s infinite alternate-reverse ease-in-out;"></div>
+  <div class="blob hero-blob-3" style="position:fixed; top:40%; left:60%; z-index:0; animation:blobScroll 10s infinite alternate ease-in-out;"></div>
+  <style>@keyframes blobScroll { 0% { transform: translateY(0) scale(1); } 100% { transform: translateY(30px) scale(1.05); } }</style>
+  
+  <div style="max-width:900px; margin:60px auto; padding:0 24px; position:relative; z-index:1;">
+    <div class="section-tag" style="justify-content:center; display:flex; width:100%;">Nearest Support</div>
+    <h2 class="section-h" style="text-align:center;">Find Clinics & Psychologists</h2>
+    <p class="section-body" style="text-align:center; margin-bottom:40px;">Enter the patient's location to discover nearby mental health facilities and doctors available for immediate consultation.</p>
+    
+    <div class="analyze-form-card" style="margin-bottom:40px; text-align:center;">
+      <div class="modal-input-wrap" style="max-width:560px; margin:0 auto;">
+        <input class="modal-input" type="text" id="locationInput" placeholder="Enter city, pin code, or area... e.g. Bangalore"/>
+        <button class="btn btn-secondary" onclick="geolocateUser()" title="Use Current Location" style="padding:10px; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:1.1rem; box-shadow:var(--shadow-card);">📍</button>
+        <button class="btn btn-primary" type="button" onclick="searchHospitals(); return false;" id="searchHospBtn">Find Clinics →</button>
+      </div>
+      <div id="hospLoading" class="loading-dots" style="justify-content:center; margin-top:20px;">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+    
+    <div id="hospitalsList" style="display:grid; grid-template-columns:1fr; gap:24px;">
+      <!-- Hospital cards dynamic injection -->
+    </div>
+    
+    <div id="hospitalsMap" style="height:340px; border-radius:20px; display:none; margin-top:32px; margin-bottom:100px; box-shadow:var(--shadow-deep); border:2px solid rgba(255,255,255,.9); overflow:hidden;"></div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<div class="modal-overlay show" id="portModal">
+  <div class="modal-card">
+    <span class="modal-icon">🧠</span>
+    <div class="modal-title">Connect to Backend</div>
+    <div class="modal-sub">Enter the port where your MindGuard Python backend is running.<br>Run <code style="background:var(--cream);padding:2px 8px;border-radius:6px;font-size:.75rem">python backend.py</code> first.</div>
+    <div class="modal-input-wrap">
+      <input class="modal-input" type="number" id="portInput" value="8000" min="1024" max="65535" placeholder="8000"/>
+      <button class="btn btn-primary" type="button" onclick="connectBackend(); return false;" id="connectBtn">Connect →</button>
+    </div>
+    <div class="modal-error" id="portError"></div>
+    <div class="modal-hint">💡 Default port is 8000. The backend will ask you to confirm the port when it starts.</div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="addPatientModal">
+  <div class="modal-card" style="text-align:left">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px">
+      <div>
+        <div class="section-tag" style="margin-bottom:4px">New Patient</div>
+        <div style="font-size:1.5rem;font-weight:900">Add to System</div>
+      </div>
+      <button onclick="closeAddPatient()" style="background:none;border:none;cursor:none;font-size:1.5rem;color:var(--ink3)">✕</button>
+    </div>
+    <div class="add-patient-form">
+      <div class="form-row">
+        <label class="form-label">Full Name</label>
+        <input class="form-input" id="newPatientName" type="text" placeholder="e.g. Ravi Sharma"/>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Age</label>
+        <input class="form-input" id="newPatientAge" type="number" placeholder="25" min="5" max="120"/>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Primary Language</label>
+        <select class="form-select" id="newPatientLang">
+          <option>Hindi</option><option>Tamil</option><option>Telugu</option>
+          <option>Kannada</option><option>Bengali</option><option selected>English</option>
+          <option>Marathi</option><option>Gujarati</option><option>Malayalam</option>
+          <option>Punjabi</option><option>Odia</option><option>Assamese</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Diagnosed Condition</label>
+        <select class="form-select" id="newPatientCondition">
+          <option value="Unknown">— Not yet diagnosed —</option>
+          <option value="Depression">Depression</option>
+          <option value="Severe Depression">Severe Depression</option>
+          <option value="Anxiety">Anxiety</option>
+          <option value="PTSD">PTSD</option>
+          <option value="Schizophrenia">Schizophrenia</option>
+          <option value="Bipolar Disorder">Bipolar Disorder</option>
+          <option value="OCD">OCD</option>
+          <option value="Suicidal Ideation">Suicidal Ideation</option>
+          <option value="Mild Stress">Mild Stress</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeAddPatient()">Cancel</button>
+      <button class="btn btn-primary" type="button" onclick="submitNewPatient(); return false;">Add Patient →</button>
+    </div>
+  </div>
+</div>
+
+<nav id="navbar">
+  <div class="nav-logo">
+    <div class="nav-logo-icon">🧠</div>
+    MindGuard
+  </div>
+  <div class="nav-links">
+    <a href="#problem">Problem</a>
+    <a href="#analyze">Analyze</a>
+    <a href="#dashboard">Dashboard</a>
+    <a href="#techstack">Stack</a>
+  </div>
+  <div class="nav-right">
+    <button class="api-status-btn" onclick="openPortModal()" title="Configure API">
+      <div class="api-dot" id="apiDot"></div>
+      <span id="apiStatusText">Not Connected</span>
+    </button>
+    <div class="nav-badge">SOA-ITER</div>
+  </div>
+</nav>
+
+<section id="hero">
+  <div class="blob hero-blob-1"></div>
+  <div class="blob hero-blob-2"></div>
+  <div class="blob hero-blob-3"></div>
+  <div class="hero-chip"><span></span>IIT BHU Hackathon · Healthcare AI Track</div>
+  <h1 class="hero-title">Mind<span class="accent-word">Guard</span></h1>
+  <p class="hero-sub">An AI-powered early warning system that quietly watches over patient language — detecting mental health deterioration weeks before crisis hits.</p>
+  <div class="hero-cta">
+    <a href="#analyze" class="btn btn-primary">🔍 Try Live Analysis</a>
+    <a href="#dashboard" class="btn btn-secondary">📊 View Dashboard</a>
+  </div>
+  <div class="scroll-hint"><span>scroll</span><div class="scroll-line"></div></div>
+</section>
+
+<div id="stats-bar">
+  <div class="stat-card sc-1"><div class="stat-num" data-target="197">0</div><div class="stat-label">million Indians with mental illness</div></div>
+  <div class="stat-card sc-2"><div class="stat-num" data-target="83" data-suffix="%">0%</div><div class="stat-label">receive zero treatment</div></div>
+  <div class="stat-card sc-3"><div class="stat-num" data-target="10">0</div><div class="stat-label">year avg delay in diagnosis</div></div>
+  <div class="stat-card sc-4"><div class="stat-num">1 in 5</div><div class="stat-label">show detectable early text signals</div></div>
+</div>
+
+<section id="problem">
+  <div>
+    <p class="section-tag">The Gap</p>
+    <h2 class="section-h">Doctors can't hear what <em style="font-style:italic;color:var(--rose)">language</em> whispers</h2>
+    <p class="section-body">Mental health crises don't arrive suddenly — they emerge slowly through subtle shifts in how patients speak and write. Hope fades, isolation grows, sleep disappears from sentences. Current systems hear none of it.</p>
+  </div>
+  <div class="problem-cards">
+    <div class="p-card"><div class="p-card-icon" style="background:rgba(232,144,124,.12)">🕐</div><div><h4>Reactive, Not Proactive</h4><p>Clinicians only intervene after severe symptoms manifest. MindGuard flags risk 2–6 weeks earlier using language biomarkers.</p></div></div>
+    <div class="p-card"><div class="p-card-icon" style="background:rgba(122,174,202,.12)">📋</div><div><h4>Unstructured Data Ignored</h4><p>Therapy notes, intake forms, and chat logs sit unused. Our NLP pipeline extracts actionable signal from all of it.</p></div></div>
+    <div class="p-card"><div class="p-card-icon" style="background:rgba(122,172,148,.12)">🌐</div><div><h4>India's Language Barrier</h4><p>Patients express distress in Hindi, Tamil, Telugu. English-only models miss 70% of India's population entirely.</p></div></div>
+    <div class="p-card"><div class="p-card-icon" style="background:rgba(240,184,122,.12)">📊</div><div><h4>No Unified Clinician View</h4><p>Even when signals exist, doctors have no risk dashboard. MindGuard delivers a scored, prioritized patient queue.</p></div></div>
+  </div>
+</section>
+
+
+
+
+<section id="analyze">
+  <div class="analyze-inner">
+    <p class="section-tag">Live Analysis</p>
+    <h2 class="section-h">Submit a patient session</h2>
+    <p class="section-body" style="margin-bottom:0">Enter a patient's spoken or written session notes below. The AI pipeline will extract linguistic features and output real risk scores.</p>
+    <div class="analyze-grid" style="margin-top:48px">
+        <div class="analyze-form-card">
+          <div class="form-row">
+            <label class="form-label">Select Patient</label>
+            <select class="form-select" id="patientSelect">
+              <option value="">Loading patients…</option>
+            </select>
+            <div class="add-patient-row">
+              <button class="add-patient-btn" type="button" onclick="openAddPatient()">+ Add New Patient</button>
+              <div class="lang-badge" id="langBadge"><span class="lang-flag" id="langFlag">🌐</span>&nbsp;<span id="langText">Auto-detect</span></div>
+            </div>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Session Notes / Patient Text</label>
+            <textarea class="form-textarea" id="sessionText" placeholder="Type or paste the patient's words here… e.g. 'I've been feeling completely hopeless lately. Nothing seems to have any point. I can't sleep and I feel so alone.'&#10;&#10;Supports: English, Hindi (हिन्दी), Tamil (தமிழ்), Telugu (తెలుగు)"></textarea>
+            <div class="char-count" id="charCount">0 / 2000 characters</div>
+          </div>
+          <div class="submit-row">
+            <button class="btn btn-primary" type="button" id="analyzeBtn">🔍 Analyze Session</button>
+            <div class="loading-dots" id="loadingDots">
+              <span></span><span></span><span></span>
+            </div>
+            <button class="btn btn-secondary" type="button" onclick="loadSampleText()" style="font-size:.78rem;padding:10px 20px">Try Sample</button>
+          </div>
+        </div>
+      <div class="result-card" id="resultCard">
+        <div class="result-empty" id="resultEmpty">
+          <span class="result-empty-icon">🔬</span>
+          <div style="font-size:1rem;font-weight:800;color:var(--ink)">Awaiting Analysis</div>
+          <p>Select a patient, enter their session text, and click <strong>Analyze Session</strong> to see AI-generated risk scores and SHAP explanations.</p>
+        </div>
+        <!-- Analysis Loading State -->
+        <div id="resultLoading" style="display:none; text-align:center; padding:48px 20px;">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:20px;">
+            <div style="width:60px; height:60px; border-radius:50%; border:4px solid var(--cream2); border-top:4px solid var(--rose); animation:spin 1s linear infinite;"></div>
+            <div style="font-size:1rem; font-weight:800; color:var(--ink);">Analyzing Session…</div>
+            <p style="font-family:var(--mono); font-size:0.7rem; color:var(--ink3); line-height:1.7;">Running NLP pipeline &amp; Gemini clinical AI<br/>This takes a few seconds</p>
+            <div class="loading-dots" style="display:flex;">
+              <span></span><span></span><span></span>
+            </div>
+          </div>
+        </div>
+        <div id="resultContent" style="display:none">
+          <div class="result-header">
+            <div>
+              <div class="result-patient" id="resultPatientName">—</div>
+              <div class="result-session" id="resultSessionId">Session —</div>
+            </div>
+            <div class="risk-level-badge" id="resultRiskBadge">—</div>
+          </div>
+          <div class="gemini-block" id="geminiBlock" style="display:none">
+            <div class="gemini-title">✨ Gemini Clinical Insight</div>
+            <div class="gemini-text" id="geminiInsightText">—</div>
+          </div>
+          <div class="score-gauges">
+            <div class="gauge-card">
+              <div class="gauge-ring" id="gaugeDepr">
+                <svg width="80" height="80" viewBox="0 0 80 80">
+                  <circle class="gauge-bg" cx="40" cy="40" r="33" stroke-dasharray="207" stroke-dashoffset="0"/>
+                  <circle class="gauge-fg" id="gaugeFgDepr" cx="40" cy="40" r="33" stroke-dasharray="207" stroke-dashoffset="207"/>
+                </svg>
+                <div class="gauge-val" id="gaugeValDepr">0.00</div>
+              </div>
+              <div class="gauge-label">Depression</div>
+              <div class="gauge-delta" id="gaugeDeltaDepr"></div>
+            </div>
+            <div class="gauge-card">
+              <div class="gauge-ring gauge-anx" id="gaugeAnx">
+                <svg width="80" height="80" viewBox="0 0 80 80">
+                  <circle class="gauge-bg" cx="40" cy="40" r="33" stroke-dasharray="207" stroke-dashoffset="0"/>
+                  <circle class="gauge-fg" id="gaugeFgAnx" cx="40" cy="40" r="33" stroke-dasharray="207" stroke-dashoffset="207"/>
+                </svg>
+                <div class="gauge-val" id="gaugeValAnx">0.00</div>
+              </div>
+              <div class="gauge-label">Anxiety</div>
+              <div class="gauge-delta" id="gaugeDeltaAnx"></div>
+            </div>
+            <div class="gauge-card">
+              <div class="gauge-ring gauge-cri" id="gaugeCri">
+                <svg width="80" height="80" viewBox="0 0 80 80">
+                  <circle class="gauge-bg" cx="40" cy="40" r="33" stroke-dasharray="207" stroke-dashoffset="0"/>
+                  <circle class="gauge-fg" id="gaugeFgCri" cx="40" cy="40" r="33" stroke-dasharray="207" stroke-dashoffset="207"/>
+                </svg>
+                <div class="gauge-val" id="gaugeValCri">0.00</div>
+              </div>
+              <div class="gauge-label">Crisis</div>
+              <div class="gauge-delta" id="gaugeDeltaCri"></div>
+            </div>
+          </div>
+          <div class="action-block" onclick="openInterventionPage()">
+            <div class="action-title">Suggested Intervention</div>
+            <div class="action-text" id="actionText">—</div>
+            <div class="action-hint">Find Clinics & Doctors Nearby <span>→</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="dashboard">
+  <div class="dash-inner">
+    <div class="dash-header">
+      <p class="section-tag">Clinician View</p>
+      <h2 class="section-h">Live risk dashboard</h2>
+    </div>
+    <div class="dash-mockup">
+      <div class="dash-topbar">
+        <div class="dash-logo"><div class="dash-logo-dot"></div>MindGuard</div>
+        <div class="dash-tabs">
+          <div class="dash-tab active" onclick="switchDashTab(this,'risk')">Risk Queue</div>
+          <div class="dash-tab" onclick="switchDashTab(this,'all')">All Patients</div>
+          <div class="dash-tab" onclick="switchDashTab(this,'analytics')">Analytics</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="dash-live"><div class="live-dot"></div>Live Monitor</div>
+          <button class="btn btn-primary" type="button" style="font-size:.72rem;padding:8px 18px;cursor:none" onclick="loadDashboard()">↺ Refresh</button>
+        </div>
+      </div>
+      <div class="dash-body">
+        <div class="dash-sidebar" id="dashSidebar">
+          <div class="sidebar-label">Patient Queue</div>
+          <div id="sidebarPatients"><div class="skeleton" style="height:52px;margin-bottom:8px"></div><div class="skeleton" style="height:52px;margin-bottom:8px"></div><div class="skeleton" style="height:52px"></div></div>
+        </div>
+        <div class="dash-main" id="dashMain">
+          <div class="dash-row" id="dashMetrics">
+            <div class="metric-card"><div class="metric-val mv-rose" id="dm-depression">—</div><div class="metric-label">Depression Risk Score</div><div class="metric-delta" id="dm-dep-delta">—</div></div>
+            <div class="metric-card"><div class="metric-val mv-peach" id="dm-anxiety">—</div><div class="metric-label">Anxiety Score</div><div class="metric-delta" id="dm-anx-delta">—</div></div>
+            <div class="metric-card"><div class="metric-val mv-sage" id="dm-crisis">—</div><div class="metric-label">Crisis Probability</div><div class="metric-delta" id="dm-cri-delta">—</div></div>
+          </div>
+          <div class="chart-area">
+            <div class="chart-title">Risk Trajectory — Session History<span id="chartPatientName"></span></div>
+            <div class="mini-bars" id="dashBars">
+              <div style="font-family:var(--mono);font-size:.65rem;color:var(--ink3);display:flex;align-items:center;padding:10px">Select a patient to view trajectory</div>
+            </div>
+          </div>
+          <div class="alert-strip" id="dashAlert" style="display:none">
+            <div class="alert-icon">⚠️</div>
+            <div class="alert-text" id="dashAlertText">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="dash-summary-row" id="dashSummary">
+        <div class="summary-stat"><div class="summary-val" id="sum-patients">—</div><div class="summary-label">Total Patients</div></div>
+        <div class="summary-stat"><div class="summary-val" id="sum-sessions">—</div><div class="summary-label">Sessions Analyzed</div></div>
+        <div class="summary-stat"><div class="summary-val" id="sum-highrisk">—</div><div class="summary-label">High Risk Alerts</div></div>
+        <div class="summary-stat"><div class="summary-val mv-rose" id="sum-active">—</div><div class="summary-label">Active Alerts</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="cta">
+  <div class="cta-blob"></div>
+  <h2 class="cta-h">Build the future<br>of <em>mental</em><br>healthcare.</h2>
+  <p class="cta-sub">One hackathon. 36 hours. A system that could change how India detects its silent epidemic.</p>
+  <div class="cta-btns">
+    <a href="#analyze" class="btn btn-primary">🔍 Try Live Analysis ↑</a>
+    <a href="#architecture" class="btn btn-secondary">⌨️ Architecture ↑</a>
+  </div>
+  <p class="team-tag">Built for IIT BHU Hackathon · Healthcare AI · 2026</p>
+</section>
+
+<footer>
+  <div><span class="footer-logo">MindGuard</span> — Mental Health Early Warning System</div>
+  <div>Python · FastAPI · IndicBERT · GSAP · Three.js · WebSocket</div>
+</footer>
+
+<script>
+console.log('MindGuard: Reload Prevention Active v3.0');
+gsap.registerPlugin(ScrollTrigger);
+
+// ── State ──────────────────────────────────────────
+let API_BASE = '';
+let WS_CONN  = null;
+let patients = [];
+let selectedDashPatient = null;
+window.runAnalysis = (...args) => sendChatMessage(...args);
+
+// Attach analyze button listener safely after DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+  const analyzeBtn = document.getElementById('analyzeBtn');
+  if (analyzeBtn) {
+    analyzeBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      sendChatMessage(e);
+    });
+  }
+});
+// Also attach immediately in case DOMContentLoaded already fired
+(function attachAnalyzeBtn() {
+  const analyzeBtn = document.getElementById('analyzeBtn');
+  if (analyzeBtn && !analyzeBtn._listenerAttached) {
+    analyzeBtn._listenerAttached = true;
+    analyzeBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      sendChatMessage(e);
+    });
+  }
+})();
+
+// ── Custom Cursor ──────────────────────────────────
+const cursor = document.getElementById('cursor');
+const trail  = document.getElementById('cursor-trail');
+let mx=0,my=0,tx=0,ty=0;
+document.addEventListener('mousemove',e=>{
+  mx=e.clientX;my=e.clientY;
+  gsap.to(cursor,{x:mx-8,y:my-8,duration:.08});
+});
+(function lerpTrail(){
+  tx+=(mx-tx)*.1;ty+=(my-ty)*.1;
+  gsap.set(trail,{x:tx-20,y:ty-20});
+  requestAnimationFrame(lerpTrail);
+})();
+document.querySelectorAll('a,.btn,.p-card,.model-card,.step-item,.patient-item,.dash-tab,.modal-input,.form-select,.form-textarea,.add-patient-btn,.action-block').forEach(el=>{
+  el.addEventListener('mouseenter',()=>gsap.to(cursor,{scale:2.2,background:'#7aac94',duration:.2}));
+  el.addEventListener('mouseleave',()=>gsap.to(cursor,{scale:1,background:'var(--rose)',duration:.2}));
+});
+
+// ── Three.js Background ────────────────────────────
+(function(){
+  const canvas   = document.getElementById('bg-canvas');
+  const renderer = new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.setSize(window.innerWidth,window.innerHeight);
+  const scene  = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(55,window.innerWidth/window.innerHeight,.1,1000);
+  camera.position.set(0,0,100);
+  scene.add(new THREE.AmbientLight(0xfff8f0,.8));
+  const sun=new THREE.DirectionalLight(0xffe0d0,1.2);sun.position.set(40,60,80);scene.add(sun);
+  const fill=new THREE.DirectionalLight(0xd0eeff,.5);fill.position.set(-40,-20,40);scene.add(fill);
+  const palette=[0xe8907c,0x7aaeca,0x7aac94,0xf0b87a,0xa890c8,0xf5c4b8];
+  const spheres=[];const N=22;
+  for(let i=0;i<N;i++){
+    const r=2.5+Math.random()*5;
+    const geo=new THREE.SphereGeometry(r,32,32);
+    const mat=new THREE.MeshPhongMaterial({color:palette[i%palette.length],shininess:18,specular:0xfff0e8});
+    const mesh=new THREE.Mesh(geo,mat);
+    mesh.position.set((Math.random()-.5)*220,(Math.random()-.5)*180,(Math.random()-.5)*60-30);
+    const speed={x:(Math.random()-.5)*.06,y:(Math.random()-.5)*.06,phase:Math.random()*Math.PI*2};
+    spheres.push({mesh,speed,baseY:mesh.position.y});
+    scene.add(mesh);
+  }
+  let mouseX=0,mouseY=0;
+  document.addEventListener('mousemove',e=>{mouseX=(e.clientX/window.innerWidth-.5);mouseY=(e.clientY/window.innerHeight-.5);});
+  let t=0;
+  (function animate(){
+    requestAnimationFrame(animate);t+=.008;
+    spheres.forEach(s=>{
+      s.mesh.position.x+=s.speed.x;
+      s.mesh.position.y=s.baseY+Math.sin(t+s.speed.phase)*4;
+      if(Math.abs(s.mesh.position.x)>130)s.speed.x*=-1;
+      s.mesh.rotation.y+=.004;s.mesh.rotation.x+=.002;
+    });
+    scene.rotation.y=mouseX*.05;scene.rotation.x=mouseY*.03;
+    renderer.render(scene,camera);
+  })();
+  window.addEventListener('resize',()=>{camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();renderer.setSize(window.innerWidth,window.innerHeight);});
+})();
+
+// ── GSAP Hero Entrance ──────────────────────────────
+gsap.set(['.hero-chip','.hero-title','.hero-sub','.hero-cta','.scroll-hint'],{y:24,opacity:0});
+gsap.timeline({delay:.4})
+  .to('.hero-chip',{y:0,opacity:1,duration:.6,ease:'back.out(2)'})
+  .to('.hero-title',{y:0,opacity:1,duration:.8,ease:'power3.out'},'-=.2')
+  .to('.hero-sub',{y:0,opacity:1,duration:.65,ease:'power2.out'},'-=.3')
+  .to('.hero-cta',{y:0,opacity:1,duration:.55,ease:'power2.out'},'-=.3')
+  .to('.scroll-hint',{y:0,opacity:1,duration:.5},'-=.1');
+
+// ── Stat counters ───────────────────────────────────
+document.querySelectorAll('.stat-num[data-target]').forEach(el=>{
+  const target=parseInt(el.dataset.target);
+  const suffix=el.dataset.suffix||'';
+  ScrollTrigger.create({trigger:'#stats-bar',once:true,onEnter:()=>{
+    gsap.to({val:0},{val:target,duration:2,ease:'power2.out',onUpdate:function(){el.textContent=Math.round(this.targets()[0].val)+suffix;}});
+  }});
+});
+
+function revealOn(selector,vars,triggerEl){
+  gsap.utils.toArray(selector).forEach((el,i)=>{
+    gsap.to(el,{...vars,delay:(vars.delay||0)+i*.1,scrollTrigger:{trigger:triggerEl||el,start:'top 86%'}});
+  });
+}
+revealOn('.p-card',{opacity:1,x:0,duration:.65,ease:'power2.out'});
+gsap.utils.toArray('.flow-node').forEach((el,i)=>{gsap.to(el,{opacity:1,y:0,duration:.65,delay:i*.14,scrollTrigger:{trigger:'#architecture',start:'top 60%'}});});
+revealOn('.step-item',{opacity:1,x:0,duration:.6,ease:'power2.out'});
+revealOn('.code-block',{opacity:1,y:0,duration:.7,ease:'power3.out'});
+gsap.utils.toArray('.model-card').forEach((el,i)=>{gsap.to(el,{opacity:1,y:0,duration:.7,delay:i*.15,scrollTrigger:{trigger:'#model',start:'top 65%'}});});
+gsap.to('.dash-mockup',{opacity:1,y:0,scale:1,duration:1,ease:'power3.out',scrollTrigger:{trigger:'#dashboard',start:'top 65%'}});
+revealOn('.tech-item',{opacity:1,x:0,duration:.5,ease:'power2.out'});
+gsap.utils.toArray('.tl-item').forEach((el,i)=>{gsap.to(el,{opacity:1,y:0,duration:.65,delay:i*.1,scrollTrigger:{trigger:el,start:'top 85%'}});});
+gsap.utils.toArray('.impact-card').forEach((el,i)=>{gsap.to(el,{opacity:1,scale:1,duration:.7,delay:i*.15,ease:'back.out(1.4)',scrollTrigger:{trigger:el,start:'top 85%'}});});
+gsap.to('.cta-h',{y:-24,scrollTrigger:{trigger:'#cta',scrub:1.8}});
+
+// Reveal analyze section
+gsap.to('.analyze-form-card',{opacity:1,y:0,duration:.8,ease:'power3.out',scrollTrigger:{trigger:'#analyze',start:'top 65%'}});
+gsap.to('.result-card',{opacity:1,y:0,duration:.8,ease:'power3.out',delay:.15,scrollTrigger:{trigger:'#analyze',start:'top 65%'}});
+
+let lastY=0;
+window.addEventListener('scroll',()=>{
+  const y=window.scrollY;
+  gsap.to('#navbar',{y:y>lastY&&y>80?-80:0,duration:.35,ease:'power2.out'});
+  lastY=y;
+});
+
+// ═══════════════════════════════════════════════
+//  API CONNECTIVITY
+// ═══════════════════════════════════════════════
+
+function openPortModal(){
+  document.getElementById('portModal').classList.add('show');
+}
+function closePortModal(){
+  document.getElementById('portModal').classList.remove('show');
+}
+
+async function connectBackend(){
+  const port = document.getElementById('portInput').value.trim();
+  const errEl = document.getElementById('portError');
+  const btn   = document.getElementById('connectBtn');
+  if(!port || isNaN(parseInt(port))){errEl.textContent='Please enter a valid port number.';return;}
+  API_BASE = `http://localhost:${port}`;
+  btn.textContent='Connecting…';
+  btn.disabled=true;
+  errEl.textContent='';
+  try{
+    const res = await fetch(`${API_BASE}/`,{signal:AbortSignal.timeout(4000)});
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    setApiStatus(true, port);
+    closePortModal();
+    showToast('✅ Connected','Backend running on port '+port,'success-toast');
+    connectWebSocket(port);
+    loadPatients();
+    loadDashboard();
+  }catch(e){
+    errEl.textContent='Could not connect. Is the backend running on port '+port+'?';
+    btn.textContent='Connect →';
+    btn.disabled=false;
+    setApiStatus(false, port);
+  }
+}
+
+function setApiStatus(connected, port){
+  const dot  = document.getElementById('apiDot');
+  const text = document.getElementById('apiStatusText');
+  if(connected){
+    dot.className='api-dot connected';
+    text.textContent='Port '+port;
+  }else{
+    dot.className='api-dot error';
+    text.textContent='Not Connected';
+  }
+}
+
+function connectWebSocket(port){
+  if(WS_CONN) WS_CONN.close();
+  WS_CONN = new WebSocket(`ws://localhost:${port}/ws/alerts`);
+  WS_CONN.onopen = ()=>{ console.log('[WS] Connected'); };
+  WS_CONN.onmessage = (e)=>{
+    const msg = JSON.parse(e.data);
+    if(msg.type==='alert'){
+      const level = msg.level==='HIGH'?'🚨':'⚠️';
+      showToast(
+        level+' Risk Alert — '+msg.patient_name,
+        `Depression: ${(msg.scores.depression*100).toFixed(0)}% · Crisis: ${(msg.scores.crisis*100).toFixed(0)}%\n${msg.action}`,
+        'alert-toast'
+      );
+      // Refresh dashboard if currently visible
+      if(selectedDashPatient===msg.patient_id) loadPatientDetail(msg.patient_id);
+      loadDashboard();
+    }
+  };
+  WS_CONN.onerror = ()=>{ setApiStatus(false,''); };
+  WS_CONN.onclose = ()=>{ setApiStatus(false,''); };
+  // Heartbeat
+  setInterval(()=>{ if(WS_CONN&&WS_CONN.readyState===1) WS_CONN.send('ping'); },25000);
+}
+
+// ═══════════════════════════════════════════════
+//  TOAST SYSTEM
+// ═══════════════════════════════════════════════
+function showToast(title, msg, cls='info-toast'){
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast ${cls}`;
+  const icons={'alert-toast':'⚠️','success-toast':'✅','info-toast':'ℹ️'};
+  toast.innerHTML = `
+    <div class="toast-icon">${icons[cls]||'ℹ️'}</div>
+    <div class="toast-body">
+      <div class="toast-title">${title}</div>
+      <div class="toast-msg">${msg}</div>
+    </div>
+    <button class="toast-close" onclick="this.closest('.toast').remove()">✕</button>`;
+  container.appendChild(toast);
+  requestAnimationFrame(()=>{ toast.classList.add('show'); });
+  setTimeout(()=>{ toast.classList.remove('show'); setTimeout(()=>toast.remove(),500); }, 7000);
+}
+
+// ═══════════════════════════════════════════════
+//  PATIENT MANAGEMENT
+// ═══════════════════════════════════════════════
+async function loadPatients(){
+  if(!API_BASE) return;
+  try{
+    const res = await fetch(`${API_BASE}/api/v1/patients`);
+    patients = await res.json();
+    populatePatientSelect();
+    updateSidebarPatients(patients);
+    if(patients.length>0 && !selectedDashPatient){
+      selectDashPatient(patients[0].id);
+    }
+  }catch(e){ console.warn('loadPatients failed',e); }
+}
+
+function populatePatientSelect(){
+  const sel = document.getElementById('patientSelect');
+  sel.innerHTML = '<option value="">— Select patient —</option>';
+  patients.forEach(p=>{
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = `${p.name} (${p.lang}) · ${p.risk_level} RISK`;
+    sel.appendChild(opt);
+  });
+}
+
+function openAddPatient(){ document.getElementById('addPatientModal').classList.add('show'); }
+function closeAddPatient(){ document.getElementById('addPatientModal').classList.remove('show'); }
+
+async function submitNewPatient(){
+  const name = document.getElementById('newPatientName').value.trim();
+  const age  = parseInt(document.getElementById('newPatientAge').value);
+  const lang = document.getElementById('newPatientLang').value;
+  const condition = document.getElementById('newPatientCondition').value;
+  if(!name||!age){ showToast('Missing fields','Please enter name and age.','alert-toast'); return; }
+  try{
+    const res = await fetch(`${API_BASE}/api/v1/patients`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,age,lang,condition})});
+    if(!res.ok) throw new Error();
+    closeAddPatient();
+    document.getElementById('newPatientName').value='';
+    document.getElementById('newPatientAge').value='';
+    showToast('Patient Added',`${name} registered in MindGuard.`,'success-toast');
+    await loadPatients();
+  }catch(e){ showToast('Error','Could not add patient. Check API connection.','alert-toast'); }
+}
+
+// ═══════════════════════════════════════════════
+//  ANALYZE SESSION
+// ═══════════════════════════════════════════════
+const sampleTexts = [
+  "I've been feeling completely hopeless lately. Nothing seems to have any point anymore. I can't sleep at night, and when I do sleep I have terrible nightmares. I feel so alone — nobody really understands. I'm exhausted all the time. I'm starting to wonder if I'm just a burden to everyone around me.",
+  "मैं बहुत निराश हूं। कुछ भी अच्छा नहीं लगता। अकेला महसूस होता है, कोई समझता नहीं। थका हुआ हूं और नींद नहीं आती।",
+  "I'm feeling a bit anxious about the upcoming exams, but overall I've been managing. Sleep has been okay and I went for a walk yesterday which helped. Looking forward to the weekend.",
+  "நான் மிகவும் கவலைப்படுகிறேன். தனிமையாக உணர்கிறேன். எதுவும் சரியாக இல்லை.",
+];
+
+function loadSampleText(){
+  const idx = Math.floor(Math.random()*sampleTexts.length);
+  document.getElementById('sessionText').value = sampleTexts[idx];
+  updateCharCount();
+  detectLangPreview();
+}
+
+document.getElementById('sessionText').addEventListener('input',()=>{
+  updateCharCount();
+  detectLangPreview();
+});
+
+const chatInputEl = document.getElementById('chatInput') || document.getElementById('sessionText');
+if (chatInputEl) {
+  chatInputEl.addEventListener('keydown', e => { 
+    if(e.key === 'Enter' && !e.shiftKey) { 
+      e.preventDefault(); 
+      e.stopPropagation();
+      sendChatMessage(e); 
+    } 
+  });
+}
+
+function updateCharCount(){
+  const len = document.getElementById('sessionText').value.length;
+  document.getElementById('charCount').textContent = `${len} / 2000 characters`;
+  if(len>2000) document.getElementById('sessionText').value = document.getElementById('sessionText').value.slice(0,2000);
+}
+
+function detectLangPreview(){
+  const text = document.getElementById('sessionText').value;
+  const hiChars = (text.match(/[\u0900-\u097F]/g)||[]).length;
+  const taChars = (text.match(/[\u0B80-\u0BFF]/g)||[]).length;
+  const teChars = (text.match(/[\u0C00-\u0C7F]/g)||[]).length;
+  let flag='🌐',label='Auto-detect';
+  if(hiChars>4){flag='🇮🇳';label='Hindi detected';}
+  else if(taChars>4){flag='🇮🇳';label='Tamil detected';}
+  else if(teChars>4){flag='🇮🇳';label='Telugu detected';}
+  else if(text.length>10){flag='🇬🇧';label='English';}
+  document.getElementById('langFlag').textContent=flag;
+  document.getElementById('langText').textContent=label;
+}
+
+async function sendChatMessage(e) {
+  if(e) e.preventDefault();
+  const pid  = document.getElementById('patientSelect').value;
+  const input = document.getElementById('chatInput') || document.getElementById('sessionText');
+  const text = input.value.trim();
+  if(!API_BASE){ showToast('Not Connected','Connect to backend first.','alert-toast'); openPortModal(); return; }
+  if(!pid){ showToast('Select Patient','Choose a patient first.','alert-toast'); return; }
+  if(!text || text.length < 5){ showToast('Too Short','Type at least 5 characters.','alert-toast'); return; }
+
+  const analyzeBtn = document.getElementById('analyzeBtn');
+  if (analyzeBtn) {
+    analyzeBtn.disabled = true;
+    analyzeBtn.style.opacity = '0.5';
+    analyzeBtn.textContent = 'Analysing…';
+  }
+
+  // Show loading state in result card immediately
+  const resultEmpty   = document.getElementById('resultEmpty');
+  const resultContent = document.getElementById('resultContent');
+  const resultLoading = document.getElementById('resultLoading');
+  const resultCard    = document.getElementById('resultCard');
+  if (resultEmpty)   resultEmpty.style.display   = 'none';
+  if (resultContent) resultContent.style.display = 'none';
+  if (resultLoading) resultLoading.style.display = 'block';
+  if (resultCard)    resultCard.classList.add('visible');
+
+  // Add user bubble to chat
+  appendChatBubble('user', text);
+
+  // Show typing dots
+  showTypingIndicator();
+
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/analyze`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({patient_id: pid, text: text})
+    });
+    if(!res.ok) throw new Error('Server error');
+    const data = await res.json();
+
+    hideTypingIndicator();
+
+    // Hide loading, show results
+    if (resultLoading) resultLoading.style.display = 'none';
+
+    // Add bot reply bubble
+    const botMsg = data.gemini_insight || data.action || 'Analysis complete.';
+    appendChatBubble('bot', botMsg);
+
+    // Update risk badge
+    const rb = document.getElementById('resultRiskBadge');
+    if(rb){ rb.textContent = data.risk_level + ' RISK'; rb.className = 'risk-level-badge rlb-' + data.risk_level; }
+
+    // Update Gemini insight block
+    const geminiBlock = document.getElementById('geminiBlock');
+    const geminiText  = document.getElementById('geminiInsightText');
+    if(geminiBlock && geminiText && data.gemini_insight){
+      geminiBlock.style.display = 'block';
+      geminiText.textContent = data.gemini_insight;
+    }
+
+    // ANIMATE THE GAUGES with real scores from backend
+    const s = data.scores;
+    animateGauge('gaugeFgDepr', 'gaugeValDepr', s.depression, 'var(--rose)');
+    animateGauge('gaugeFgAnx',  'gaugeValAnx',  s.anxiety,    'var(--peach)');
+    animateGauge('gaugeFgCri',  'gaugeValCri',  s.crisis,     'var(--sky)');
+
+    // Update action text
+    const actEl = document.getElementById('actionText');
+    if(actEl) actEl.textContent = data.action || '';
+
+    // Show result card if hidden
+    const rc = document.getElementById('resultCard');
+    if(rc){ rc.classList.add('visible'); }
+    const re = document.getElementById('resultEmpty');
+    if(re){ re.style.display = 'none'; }
+    const rcontent = document.getElementById('resultContent');
+    if(rcontent){ rcontent.style.display = 'block'; }
+
+    // Update patient name in result
+    const rpn = document.getElementById('resultPatientName');
+    if(rpn && data.patient) rpn.textContent = data.patient.name + ' · ' + (data.features.lang_label || '');
+    const rsi = document.getElementById('resultSessionId');
+    if(rsi) rsi.textContent = 'Session ' + data.session_num + ' · ' + data.session_id;
+
+    await loadDashboard();
+
+    if (analyzeBtn) {
+      analyzeBtn.disabled = false;
+      analyzeBtn.style.opacity = '1';
+      analyzeBtn.innerHTML = '🔍 Analyze Session';
+    }
+
+  } catch(e) {
+    hideTypingIndicator();
+    if (resultLoading) resultLoading.style.display = 'none';
+    if (resultEmpty)   resultEmpty.style.display   = 'flex';
+    if (resultCard)    resultCard.classList.remove('visible');
+    if (analyzeBtn) {
+      analyzeBtn.disabled = false;
+      analyzeBtn.style.opacity = '1';
+      analyzeBtn.innerHTML = '🔍 Analyze Session';
+    }
+    appendChatBubble('bot', 'Sorry, analysis failed. Check your backend connection.');
+    showToast('Error', e.message, 'alert-toast');
+  }
+}
+
+function appendChatBubble(role, text){
+  const container = document.getElementById('chatMessages') || document.getElementById('chat-messages');
+  if(!container) return;
+  const div = document.createElement('div');
+  div.className = role === 'user' ? 'chat-bubble-user' : 'chat-bubble-bot';
+  div.textContent = text;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function showTypingIndicator(){
+  const container = document.getElementById('chatMessages') || document.getElementById('chat-messages');
+  if(!container) return;
+  const div = document.createElement('div');
+  div.id = 'typingIndicator';
+  div.className = 'chat-bubble-bot typing-indicator';
+  div.innerHTML = '<span></span><span></span><span></span>';
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function hideTypingIndicator(){
+  const el = document.getElementById('typingIndicator');
+  if(el) el.remove();
+}
+
+function animateGauge(fgId, valId, value, color){
+  const circ = 2*Math.PI*33; // ~207
+  const fg   = document.getElementById(fgId);
+  const valEl= document.getElementById(valId);
+  fg.style.stroke = color;
+  const targetOffset = circ*(1-value);
+  let current = parseFloat(fg.getAttribute('stroke-dashoffset')||circ);
+  const start = performance.now();
+  const dur   = 1200;
+  function step(now){
+    const t = Math.min((now-start)/dur,1);
+    const ease = 1-Math.pow(1-t,3);
+    const offset = current + (targetOffset-current)*ease;
+    fg.setAttribute('stroke-dashoffset', offset.toFixed(2));
+    valEl.textContent = (value*ease).toFixed(2);
+    if(t<1) requestAnimationFrame(step);
+    else valEl.textContent = value.toFixed(2);
+  }
+  requestAnimationFrame(step);
+}
+
+function setDelta(elId, value, label){
+  const el = document.getElementById(elId);
+  if(value>0.65){ el.textContent='▲ HIGH RISK'; el.className='gauge-delta up'; }
+  else if(value>0.4){ el.textContent='▲ MODERATE'; el.className='gauge-delta up'; }
+  else{ el.textContent='▼ LOW RISK'; el.className='gauge-delta down'; }
+}
+
+// ═══════════════════════════════════════════════
+//  LIVE DASHBOARD
+// ═══════════════════════════════════════════════
+async function loadDashboard(){
+  if(!API_BASE) return;
+  try{
+    const res  = await fetch(`${API_BASE}/api/v1/dashboard`);
+    const data = await res.json();
+    document.getElementById('sum-patients').textContent = data.total_patients;
+    document.getElementById('sum-sessions').textContent = data.total_sessions;
+    document.getElementById('sum-highrisk').textContent = data.high_risk_count;
+    document.getElementById('sum-active').textContent   = data.alerts_active;
+    updateSidebarPatients(data.all_patients||[]);
+    if(!selectedDashPatient && data.high_risk_patients && data.high_risk_patients.length>0){
+      selectDashPatient(data.high_risk_patients[0].id);
+    }
+  }catch(e){ console.warn('loadDashboard failed',e); }
+}
+
+function updateSidebarPatients(pts){
+  const el = document.getElementById('sidebarPatients');
+  if(!pts||!pts.length){ el.innerHTML='<div style="font-family:var(--mono);font-size:.65rem;color:var(--ink3);padding:12px">No patients loaded</div>'; return; }
+  const avatarColors=['pa-rose','pa-peach','pa-sage','pa-sky'];
+  el.innerHTML = pts.map((p,i)=>`
+    <div class="patient-item ${p.id===selectedDashPatient?'active':''}" onclick="selectDashPatient('${p.id}')" data-pid="${p.id}">
+      <div class="pat-avatar ${avatarColors[i%4]}">${p.avatar||p.name.slice(0,2).toUpperCase()}</div>
+      <div class="pat-info"><h5>${p.name}</h5><span>${p.condition || 'Unknown'} · ${p.lang}</span></div>
+      <div class="risk-badge ${p.risk_level==='HIGH'?'rb-hi':p.risk_level==='MED'?'rb-mid':'rb-lo'}">${p.risk_level}</div>
+    </div>`).join('');
+}
+
+async function selectDashPatient(pid){
+  selectedDashPatient = pid;
+  // Update active state
+  document.querySelectorAll('#sidebarPatients .patient-item').forEach(el=>{
+    el.classList.toggle('active', el.dataset.pid===pid);
+  });
+  await loadPatientDetail(pid);
+}
+
+async function loadPatientDetail(pid){
+  if(!API_BASE||!pid) return;
+  try{
+    const res = await fetch(`${API_BASE}/api/v1/patients/${pid}/sessions`);
+    const sessions = await res.json();
+    if(!sessions.length) return;
+    const last = sessions[sessions.length-1];
+    const scores = last.scores;
+    const patient = patients.find(p=>p.id===pid)||{name:pid};
+
+    document.getElementById('dm-depression').textContent = scores.depression.toFixed(2);
+    document.getElementById('dm-anxiety').textContent    = scores.anxiety.toFixed(2);
+    document.getElementById('dm-crisis').textContent     = scores.crisis.toFixed(2);
+
+    // Deltas
+    if(sessions.length>=2){
+      const prev = sessions[sessions.length-2].scores;
+      const dDep = (scores.depression-prev.depression);
+      const dAnx = (scores.anxiety-prev.anxiety);
+      const dCri = (scores.crisis-prev.crisis);
+      document.getElementById('dm-dep-delta').innerHTML = formatDelta(dDep,'since last session');
+      document.getElementById('dm-anx-delta').innerHTML = formatDelta(dAnx,'since last session');
+      document.getElementById('dm-cri-delta').innerHTML = formatDelta(dCri,'monitoring');
+    }
+
+    // Bar chart
+    document.getElementById('chartPatientName').textContent = ` — ${patient.name}`;
+    const barsEl = document.getElementById('dashBars');
+    const recent = sessions.slice(-8);
+    const maxVal = Math.max(...recent.map(s=>s.scores.depression),0.01);
+    barsEl.innerHTML = recent.map((s,i)=>{
+      const h = (s.scores.depression/maxVal)*88;
+      const col = s.scores.depression>0.65?'var(--rose)':s.scores.depression>0.4?'var(--peach)':'var(--sky-lt)';
+      const op  = 0.5 + (i/recent.length)*0.5;
+      return `<div class="bar" style="height:${Math.max(h,6)}%;background:${col};opacity:${op};${i===recent.length-1?'box-shadow:0 4px 16px rgba(232,144,124,.4)':''}" title="Session ${i+1}: ${s.scores.depression.toFixed(2)}">
+        <div class="bar-tooltip">S${sessions.length-recent.length+i+1}: ${s.scores.depression.toFixed(2)}</div>
+      </div>`;
+    }).join('');
+
+    // Alert strip (SHAP)
+    const alertEl = document.getElementById('dashAlert');
+    if(last.features && last.features.shap_factors && last.features.shap_factors.length){
+      alertEl.style.display='flex';
+      document.getElementById('dashAlertText').innerHTML =
+        `<strong>SHAP Explanation — ${patient.name}</strong> · Top signals: `+
+        last.features.shap_factors.slice(0,3).map(f=>`<span style="color:var(--rose);font-weight:600">${f}</span>`).join(', ')+
+        (last.action?`<br><em>${last.action}</em>`:'');
+    }
+  }catch(e){ console.warn('loadPatientDetail failed',e); }
+}
+
+function formatDelta(d, suffix){
+  const sign = d>=0?'▲ +':'▼ ';
+  const cls  = d>=0?'dt-up':'dt-dn';
+  return `<span class="${cls}">${sign}${Math.abs(d).toFixed(2)} ${suffix}</span>`;
+}
+
+function switchDashTab(el, tab){
+  document.querySelectorAll('.dash-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ═══════════════════════════════════════════════
+//  INTERVENTION PAGE (HOSPITALS & DOCTORS)
+// ═══════════════════════════════════════════════
+function openInterventionPage() {
+  const interventionPage = document.getElementById('interventionPage');
+  document.body.style.overflow = 'hidden';
+  interventionPage.style.display = 'block';
+  
+  // Apply scrolling canvas effect
+  const canvas = document.getElementById('bg-canvas');
+  if (canvas) interventionPage.insertBefore(canvas, interventionPage.firstChild);
+  
+  gsap.fromTo(interventionPage, {opacity: 0, y: 30}, {opacity: 1, y: 0, duration: 0.4, ease: 'power2.out'});
+  
+  const locInput = document.getElementById('locationInput');
+  setTimeout(() => locInput.focus(), 400);
+}
+
+function closeInterventionPage() {
+  const interventionPage = document.getElementById('interventionPage');
+  gsap.to(interventionPage, {opacity: 0, y: 30, duration: 0.3, onComplete: () => {
+    interventionPage.style.display = 'none';
+    document.body.style.overflow = '';
+    // Restore canvas
+    const canvas = document.getElementById('bg-canvas');
+    if (canvas) document.body.insertBefore(canvas, document.getElementById('interventionPage'));
+  }});
+
+  // DO NOT reset result card — preserve analysis data so user can see it after returning
+  // Only clear the intervention map + cards for next use
+  document.getElementById('hospitalsList').innerHTML = '';
+  document.getElementById('hospitalsMap').style.display = 'none';
+  document.getElementById('locationInput').value = '';
+  if (window._leafletMap) { window._leafletMap.remove(); window._leafletMap = null; }
+}
+
+document.getElementById('locationInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') searchHospitals();
+});
+
+async function searchHospitals() {
+  const location = document.getElementById('locationInput').value.trim();
+  if (!API_BASE) { showToast('Not Connected', 'Connect to backend first.', 'alert-toast'); openPortModal(); return; }
+  if (!location) { showToast('Missing Input', 'Please enter a location.', 'alert-toast'); return; }
+
+  const btn = document.getElementById('searchHospBtn');
+  const loading = document.getElementById('hospLoading');
+  const list = document.getElementById('hospitalsList');
+  const mapDiv = document.getElementById('hospitalsMap');
+
+  btn.style.display = 'none';
+  loading.style.display = 'flex';
+  list.innerHTML = '';
+  mapDiv.style.display = 'none';
+
+  // Destroy previous Leaflet map instance if any
+  if (window._leafletMap) {
+    window._leafletMap.remove();
+    window._leafletMap = null;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/hospitals?location=${encodeURIComponent(location)}`);
+    if (!res.ok) throw new Error('API Error');
+    const data = await res.json();
+    
+    if (!data.hospitals || data.hospitals.length === 0) {
+      list.innerHTML = `<div style="text-align:center; padding:40px; color:var(--ink3); font-family:var(--mono);">No clinics found for this location. Try a well-known city name.</div>`;
+    } else {
+      // Amenity badge colour map
+      const amenityStyle = {
+        'Hospital':  'background:rgba(232,144,124,.18); color:var(--rose);',
+        'Clinic':    'background:rgba(122,172,148,.18); color:var(--sage);',
+        'Pharmacy':  'background:rgba(122,174,202,.18); color:var(--sky);'
+      };
+
+      list.innerHTML = data.hospitals.map(h => {
+        const badge = h.amenity_type || 'Clinic';
+        const badgeStyle = amenityStyle[badge] || amenityStyle['Clinic'];
+        return `
+        <div class="hosp-card">
+          <div class="hosp-header">
+            <div>
+              <div class="hosp-name">${h.name}
+                <span style="${badgeStyle} font-family:var(--mono); font-size:0.6rem; font-weight:700; padding:3px 10px; border-radius:99px; margin-left:8px; vertical-align:middle; letter-spacing:.04em;">${badge}</span>
+              </div>
+              <div class="hosp-address">📍 ${h.address}</div>
+            </div>
+            <div class="hosp-dist">${h.distance_km} km away</div>
+          </div>
+          <div class="contact-tag">📞 ${h.contact || 'Not listed'}</div>
+          <div class="doc-grid">
+            ${h.doctors.map(d => `
+              <div class="doc-card">
+                <div class="doc-name">${d.name}</div>
+                <div class="doc-spec">${d.specialty}</div>
+                <div class="doc-meta">
+                  <span class="doc-exp">${d.experience}</span>
+                  <span class="doc-avail">${d.availability}</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>`;
+      }).join('');
+
+      // GSAP stagger animation
+      gsap.from(".hosp-card", { y: 60, opacity: 0, duration: 0.5, stagger: 0.12, ease: "power2.out" });
+
+      // Build Leaflet map
+      mapDiv.style.display = 'block';
+      const validHospitals = data.hospitals.filter(h => h.lat && h.lng && !(h.lat === 0 && h.lng === 0));
+      if (validHospitals.length > 0) {
+        const map = L.map('hospitalsMap');
+        window._leafletMap = map;
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        const bounds = [];
+        validHospitals.forEach(h => {
+          const marker = L.marker([h.lat, h.lng]).addTo(map);
+          marker.bindPopup(`
+            <div style="font-family:'Nunito',sans-serif; padding:4px; min-width:180px;">
+              <strong style="font-size:0.9rem; color:#3a2e28;">${h.name}</strong><br/>
+              <span style="font-size:0.75rem; color:#6b5a52;">${h.address}</span><br/>
+              <a href="${h.maps_url}" target="_blank"
+                 style="display:inline-block; margin-top:6px; color:#e8907c; font-weight:700; text-decoration:none; font-size:0.8rem;">↗ Open in OSM</a>
+            </div>
+          `);
+          bounds.push([h.lat, h.lng]);
+        });
+
+        if (bounds.length === 1) {
+          map.setView(bounds[0], 14);
+        } else {
+          map.fitBounds(bounds, { padding: [30, 30] });
+        }
+      } else {
+        mapDiv.style.display = 'none';
+      }
+    }
+  } catch (err) {
+    showToast('Search Failed', 'Could not fetch hospital data.', 'alert-toast');
+  } finally {
+    btn.style.display = 'inline-block';
+    loading.style.display = 'none';
+  }
+}
+
+async function geolocateUser() {
+  if (!navigator.geolocation) {
+    showToast('Error', 'Geolocation is not supported by your browser.', 'alert-toast');
+    return;
+  }
+  
+  const locInput = document.getElementById('locationInput');
+  const orgPlaceholder = locInput.placeholder;
+  locInput.placeholder = 'Locating you...';
+  locInput.value = '';
+  
+  navigator.geolocation.getCurrentPosition(async (position) => {
+    try {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      // Use free Nominatim reverse geocoding — no API key required
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+        { headers: { 'User-Agent': 'MindGuard/1.0' } }
+      );
+      const data = await res.json();
+      if (data && data.address) {
+        const city = data.address.city || data.address.town || data.address.village || data.address.county || data.display_name;
+        locInput.value = city;
+        searchHospitals();
+      } else {
+        throw new Error('No address data');
+      }
+    } catch (e) {
+      showToast('Error', 'Could not determine your city. Please enter manually.', 'alert-toast');
+      locInput.placeholder = orgPlaceholder;
+    }
+  }, () => {
+    showToast('Error', 'Geolocation access denied or failed.', 'alert-toast');
+    locInput.placeholder = orgPlaceholder;
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  PORT MODAL — Enter key support
+// ═══════════════════════════════════════════════
+document.getElementById('portInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter') {
+    e.preventDefault(); e.stopPropagation();
+    connectBackend();
+  }
+});
+
+// ── Expose to HTML ──────────────────────────────
+window.connectBackend  = connectBackend;
+window.openPortModal   = openPortModal;
+window.openAddPatient  = openAddPatient;
+window.closeAddPatient = closeAddPatient;
+window.submitNewPatient= submitNewPatient;
+window.runAnalysis     = sendChatMessage;
+window.sendChatMessage = sendChatMessage;
+window.loadSampleText  = loadSampleText;
+window.loadDashboard   = loadDashboard;
+window.selectDashPatient=selectDashPatient;
+window.switchDashTab   = switchDashTab;
+window.openInterventionPage = openInterventionPage;
+window.closeInterventionPage = closeInterventionPage;
+window.searchHospitals = searchHospitals;
+window.geolocateUser = geolocateUser;
+
+</script>
+</body>
+</html>

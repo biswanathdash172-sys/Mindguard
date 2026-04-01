@@ -1,0 +1,11 @@
+{
+  "liveServer.settings.ignoreFiles": [
+    "**/*.py",
+    "**/*.txt",
+    "**/*.json",
+    "**/__pycache__/**",
+    "**/response*.json",
+    "**/gemini_err.txt"
+  ],
+  "liveServer.settings.donotShowInfoMsg": true
+}

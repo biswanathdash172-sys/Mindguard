@@ -1,0 +1,39 @@
+﻿{
+    "session_id":  "P001_S08",
+    "patient":  {
+                    "id":  "P001",
+                    "name":  "Aryan K.",
+                    "age":  28,
+                    "lang":  "Hindi",
+                    "created":  "2025-01-10",
+                    "avatar":  "AK"
+                },
+    "scores":  {
+                   "depression":  0.95,
+                   "anxiety":  0.85,
+                   "crisis":  0.98
+               },
+    "risk_level":  "HIGH",
+    "features":  {
+                     "lang":  "en",
+                     "lang_label":  "English",
+                     "word_count":  13,
+                     "hopelessness":  1.0,
+                     "anxiety_lexical":  1.0,
+                     "positive_ratio":  0.0,
+                     "sleep_score":  0.0,
+                     "isolation_score":  0.0,
+                     "negation_score":  0.0,
+                     "brevity_score":  0.705,
+                     "fp_score":  1.0,
+                     "shap_factors":  [
+                                          "Hopelessness tokens Ã1 detected",
+                                          "Very short sentences (emotional withdrawal)",
+                                          "Anxiety vocabulary elevated",
+                                          "Elevated self-referential language"
+                                      ]
+                 },
+    "action":  "Seek immediate professional help from a crisis hotline or emergency services.",
+    "session_num":  8,
+    "gemini_insight":  "It sounds like you are going through an incredibly difficult time, feeling overwhelmed and without hope."
+}
